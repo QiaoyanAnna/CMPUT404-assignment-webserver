@@ -1,5 +1,7 @@
 #  coding: utf-8 
 import socketserver
+import os
+import mimetypes
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # 
@@ -28,11 +30,59 @@ import socketserver
 
 
 class MyWebServer(socketserver.BaseRequestHandler):
-    
+
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        print(self.data.decode('utf-8') + "\n")
+        self.data = self.data.split()
+        method = self.data[0].decode('utf-8')
+        if method == "GET":
+            self.verifyPath()
+        else:
+            print("405 Method Not Allowed")
+
+    def verifyPath(self):
+        path = self.data[1].decode('utf-8')
+        print("path: " + path)
+        currDir = os.getcwd()
+        wDir = os.path.join(currDir, "www")
+        reqDir = os.path.join(wDir, path[1:])
+        print(reqDir)
+        if os.path.exists(reqDir):
+            print("path exists")
+            statusCode = "HTTP/1.1 200 OK\r\n"
+            if os.path.isdir(reqDir):
+                if not path.endswith("/"):
+                    print("redirect")
+                    statusCode = "HTTP/1.1 301 Moved Permanently\r\n"
+                    location = "Location: " + path + "/\r\n"
+                    self.sendData(statusCode, location)
+                reqDir = os.path.join(reqDir, "index.html")
+            if os.path.isfile(reqDir):
+                print("File exists " + reqDir)
+                self.sendData(statusCode, file = reqDir)
+            else:
+                print("no html file found")
+        else:
+            #statusCode = "something else"
+            print("path does not exist\n")
+
+    def sendData(self, statusCode, location = None, file = None):
+        self.request.sendall(bytearray(statusCode,'utf-8'))
+        if location != None:
+            self.request.sendall(bytearray(location,'utf-8'))
+        if file != None:
+            f = open(file, 'rb')
+            data = f.read()
+            f.close()
+            contentLen = "Content-Length: " + str(len(data)) + "\r\n"
+            mimeType = mimetypes.guess_type(file)[0]
+            contentType = "Content-Type: " + mimeType + "\r\n"
+            newLineChar = "\r\n"
+            header = contentLen + contentType + newLineChar
+            self.request.sendall(bytearray(header,'utf-8'))
+            self.request.sendall(data)
+        print("Finish sending data.\n")
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
@@ -40,7 +90,7 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
     server = socketserver.TCPServer((HOST, PORT), MyWebServer)
-
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()
+    
