@@ -39,37 +39,48 @@ class MyWebServer(socketserver.BaseRequestHandler):
         if method == "GET":
             self.verifyPath()
         else:
-            print("405 Method Not Allowed")
+            print("wrong method")
+            statusCode = "HTTP/1.1 405 Method Not Allowed\r\n"
+            self.sendData(statusCode)
 
     def verifyPath(self):
         path = self.data[1].decode('utf-8')
         print("path: " + path)
+        if "../" in path: # need to be fixed
+            self.getErrorPage()
+            return False
         currDir = os.getcwd()
         wDir = os.path.join(currDir, "www")
         reqDir = os.path.join(wDir, path[1:])
         print(reqDir)
         if os.path.exists(reqDir):
             print("path exists")
-            statusCode = "HTTP/1.1 200 OK\r\n"
             if os.path.isdir(reqDir):
+                print("It is a dir")
                 if not path.endswith("/"):
                     print("redirect")
                     statusCode = "HTTP/1.1 301 Moved Permanently\r\n"
                     location = "Location: " + path + "/\r\n"
-                    self.sendData(statusCode, location)
+                    self.sendData(statusCode, location = location)
+                    return False
                 reqDir = os.path.join(reqDir, "index.html")
             if os.path.isfile(reqDir):
+                statusCode = "HTTP/1.1 200 OK\r\n"
                 print("File exists " + reqDir)
                 self.sendData(statusCode, file = reqDir)
-            else:
-                print("no html file found")
         else:
-            #statusCode = "something else"
-            print("path does not exist\n")
+            self.getErrorPage()
 
+    def getErrorPage(self):
+        statusCode = "HTTP/1.1 404 Not Found\r\n"
+        errorPage = os.path.join(os.getcwd(), "index.html")
+        self.sendData(statusCode, file = errorPage)
+        print("path does not exist\n")
+    
     def sendData(self, statusCode, location = None, file = None):
         self.request.sendall(bytearray(statusCode,'utf-8'))
         if location != None:
+            print("location: " + location)
             self.request.sendall(bytearray(location,'utf-8'))
         if file != None:
             f = open(file, 'rb')
