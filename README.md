@@ -24,3 +24,7 @@ examples thus some of the code is Copyright © 2001-2013 Python
 Software Foundation; All Rights Reserved under the PSF license (GPL
 compatible) http://docs.python.org/2/library/socketserver.html
 
+Reference
+========================
+
+L. Ratnaparkhi, “How to find the mime type of a file in python?,” *Stack Overflow*, 11-Dec-2019. [Online]. Available: https://stackoverflow.com/questions/43580/how-to-find-the-mime-type-of-a-file-in-python. [Accessed: 22-Jan-2020].
