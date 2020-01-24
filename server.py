@@ -28,6 +28,10 @@ import mimetypes
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 
+# Reference: 
+# L. Ratnaparkhi, “How to find the mime type of a file in python?,” Stack Overflow, 11-Dec-2019. [Online]. 
+# Available: https://stackoverflow.com/questions/43580/how-to-find-the-mime-type-of-a-file-in-python. 
+# [Accessed: 22-Jan-2020].
 
 class MyWebServer(socketserver.BaseRequestHandler):
 
@@ -43,12 +47,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def verifyPath(self):
         path = self.data[1].decode('utf-8')
-        if "../" in path: # need to be fixed
-            self.getErrorPage()
-            return False
         currDir = os.getcwd()
         wDir = os.path.join(currDir, "www")
         reqDir = os.path.join(wDir, path[1:])
+        commonPath = os.path.commonpath([os.path.abspath(reqDir), os.path.abspath(currDir)])
+        if commonPath != os.path.abspath(currDir):
+            self.getErrorPage()
+            return False
         if os.path.exists(reqDir):
             if os.path.isdir(reqDir):
                 if not path.endswith("/"):
