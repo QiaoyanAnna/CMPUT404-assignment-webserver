@@ -43,7 +43,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.verifyPath()
         else:
             statusCode = "HTTP/1.1 405 Method Not Allowed\r\n"
-            self.sendData(statusCode)
+            self.sendData(statusCode, connection = False)
 
     def verifyPath(self):
         path = self.data[1].decode('utf-8')
@@ -53,14 +53,14 @@ class MyWebServer(socketserver.BaseRequestHandler):
         commonPath = os.path.commonpath([os.path.abspath(reqDir), os.path.abspath(currDir)])
         if commonPath != os.path.abspath(currDir):
             self.getErrorPage()
-            return False
+            return
         if os.path.exists(reqDir):
             if os.path.isdir(reqDir):
                 if not path.endswith("/"):
                     statusCode = "HTTP/1.1 301 Moved Permanently\r\n"
-                    location = "Location: " + path + "/\r\n"
+                    location = "Location: " + path + "/\r\n\r\n"
                     self.sendData(statusCode, location = location)
-                    return False
+                    return
                 reqDir = os.path.join(reqDir, "index.html")
             if os.path.isfile(reqDir):
                 statusCode = "HTTP/1.1 200 OK\r\n"
@@ -73,7 +73,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         errorPage = os.path.join(os.getcwd(), "www/errorPage.html")
         self.sendData(statusCode, file = errorPage)
     
-    def sendData(self, statusCode, location = None, file = None):
+    def sendData(self, statusCode, location = None, file = None, connection = True):
         self.request.sendall(bytearray(statusCode,'utf-8'))
         if location != None:
             self.request.sendall(bytearray(location,'utf-8'))
@@ -84,10 +84,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
             contentLen = "Content-Length: " + str(len(data)) + "\r\n"
             mimeType = mimetypes.guess_type(file)[0]
             contentType = "Content-Type: " + mimeType + "\r\n"
+            closeConn = "Connection: closed\r\n"
             newLineChar = "\r\n"
-            header = contentLen + contentType + newLineChar
+            header = contentLen + contentType + closeConn + newLineChar
             self.request.sendall(bytearray(header,'utf-8'))
             self.request.sendall(data)
+        if not connection:
+            self.request.sendall(bytearray("Connection: closed\r\n\r\n",'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
